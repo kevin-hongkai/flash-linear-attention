@@ -192,7 +192,7 @@ def layer_norm_gated_fwd_kernel1(
 @triton.autotune(
     configs=[
         triton.Config({'BT': BT}, num_warps=num_warps)
-        for BT in [16, 32, 64]
+        for BT in [4] #32, 64]
         for num_warps in [4, 8, 16]
     ],
     key=['D', 'NB', 'IS_RMS_NORM', 'HAS_DRESIDUAL', 'HAS_WEIGHT'],

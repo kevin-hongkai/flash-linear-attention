@@ -179,7 +179,7 @@ class GroupNormRef(nn.Module):
 @triton.autotune(
     configs=[
         triton.Config({'BT': BT}, num_warps=num_warps)
-        for BT in [32, 64, 128]
+        for BT in [16, 32, 64]
         for num_warps in [2, 4, 8]
     ],
     key=['D', 'NB', 'HAS_RESIDUAL', 'STORE_RESIDUAL_OUT', 'IS_RMS_NORM'],
@@ -238,9 +238,9 @@ def layer_norm_fwd_kernel(
     tl.store(p_rstd, b_rstd.to(p_rstd.dtype.element_ty), boundary_check=(0,))
 
     if HAS_WEIGHT:
-        b_w = tl.load(w + o_g[:, None] * D + o_d[None, :], mask=m_d[None, :]).to(tl.float32)
+        b_w = tl.load(w +  o_d[None, :], mask=m_d[None, :]).to(tl.float32)
     if HAS_BIAS:
-        b_b = tl.load(b + o_g[:, None] * D + o_d[None, :], mask=m_d[None, :]).to(tl.float32)
+        b_b = tl.load(b  + o_d[None, :], mask=m_d[None, :]).to(tl.float32)
     b_x_hat = (b_x - b_mean[:, None]) * b_rstd[:, None] if not IS_RMS_NORM else b_x * b_rstd[:, None]
     b_y = b_x_hat * b_w if HAS_WEIGHT else b_x_hat
     if HAS_BIAS:
@@ -326,7 +326,7 @@ def layer_norm_fwd_kernel1(
 @triton.autotune(
     configs=[
         triton.Config({'BT': BT}, num_warps=num_warps)
-        for BT in [32, 64]
+        for BT in [16, 32]
         for num_warps in [2, 4, 8]
     ],
     key=['D', 'NB', 'HAS_DRESIDUAL', 'STORE_DRESIDUAL', 'IS_RMS_NORM'],
@@ -560,7 +560,7 @@ def layer_norm_fwd(
     if D > BD:
         raise RuntimeError("This layer norm doesn't support feature dim >= 64KB.")
     # heuristics for number of warps
-
+    print(f"layer_norm G is {G}")
     if D <= 512:
         NB = triton.cdiv(T, 2048)
         def grid(meta): return (triton.cdiv(T, meta['BT']), )
@@ -605,6 +605,8 @@ def layer_norm_fwd(
             HAS_WEIGHT=weight is not None,
             HAS_BIAS=bias is not None,
         )
+    #breakpoint()
+    #print(f"layernorm forward output y is {y},res_out is {res_out},mean is {mean} rstd {rstd} x {x}")
     # res_out is None if residual is None and residual_dtype == input_dtype
     return y, mean, rstd, res_out if res_out is not None else x
 
@@ -652,6 +654,8 @@ def layer_norm_bwd(
 
     if D <= 512:
         NB = triton.cdiv(T, 2048)
+        #NS 48 BS 86 GS 48 G 1 x.shape torch.Size([4096, 256]) T 4096, D 256
+        print(f"NS {NS} BS {BS} GS {GS} G {G} x.shape {x.shape} T {T}, D {D}")
         layer_norm_bwd_kernel[grid](
             x,
             weight,

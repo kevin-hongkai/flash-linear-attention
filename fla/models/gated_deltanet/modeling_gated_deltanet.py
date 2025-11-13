@@ -85,6 +85,7 @@ class GatedDeltaNetBlock(GradientCheckpointingLayer):
         output_attentions: bool | None = False,
         **kwargs: Unpack[dict],
     ) -> tuple[torch.FloatTensor, tuple[torch.FloatTensor, torch.FloatTensor] | None]:
+        print(f"enter GatedDeltaNetBlock forward....")
         residual = hidden_states
         hidden_states = self.attn_norm(hidden_states)
         hidden_states, attentions, past_key_values = self.attn(
@@ -209,6 +210,7 @@ class GatedDeltaNetModel(GatedDeltaNetPreTrainedModel):
         return_dict: bool | None = None,
         **kwargs: Unpack[dict],
     ) -> tuple | BaseModelOutputWithPast:
+        print(f"enter GatedDeltaNetModel forward....")
         if output_attentions:
             warnings.warn("`GatedDeltaNetModel` does not `output_attentions` now, setting it to `False`.")
             output_attentions = False
@@ -233,6 +235,7 @@ class GatedDeltaNetModel(GatedDeltaNetPreTrainedModel):
         all_hidden_states = () if output_hidden_states else None
         all_attns = () if output_attentions else None
         for layer in self.layers:
+            print(f"GatedDeltaNetModel layer {layer}....")
             if output_hidden_states:
                 all_hidden_states += (hidden_states,)
 
@@ -247,7 +250,6 @@ class GatedDeltaNetModel(GatedDeltaNetPreTrainedModel):
 
             if output_attentions:
                 all_attns += (attentions,)
-
         hidden_states = self.norm(hidden_states)
 
         # add hidden states from the last decoder layer

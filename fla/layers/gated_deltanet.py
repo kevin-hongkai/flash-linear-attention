@@ -217,11 +217,12 @@ class GatedDeltaNet(nn.Module):
 
         batch_size, q_len, _ = hidden_states.shape
         # change to inference mode.
-        mode = 'fused_recurrent' if (q_len <= 64 and not self.training) else self.mode
+        mode = 'fused_recurrent' if q_len <= 64 else self.mode
         if self.training:
             assert mode == 'chunk', "Only chunk mode is supported in training."
 
         last_state = None
+        print(f"GatedDeltaNet layer_idx is {self.layer_idx}")
         if past_key_values is not None and len(past_key_values) > self.layer_idx:
             last_state = past_key_values[self.layer_idx]
 

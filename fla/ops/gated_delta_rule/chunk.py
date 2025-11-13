@@ -55,6 +55,32 @@ def chunk_gated_delta_rule_fwd(
         output_final_state=output_final_state,
         cu_seqlens=cu_seqlens,
     )
+    nan_mask = torch.isnan(h)
+    nan_indices = torch.nonzero(nan_mask, as_tuple=False)
+    print(f"chunk_gated_delta_rule_fwd_h output h nan_indices {nan_indices}")
+    nan_mask = torch.isnan(v_new)
+    nan_indices = torch.nonzero(nan_mask, as_tuple=False)
+    print(f"chunk_gated_delta_rule_fwd_h output v_new nan_indices {nan_indices}")
+    print(f"chunk_gated_delta_rule_fwd_h output v_new  {v_new}")
+    print(f"chunk_gated_delta_rule_fwd_h input g {g}")
+    nan_mask = torch.isnan(g)
+    nan_indices = torch.nonzero(nan_mask, as_tuple=False)
+    print(f"chunk_gated_delta_rule_fwd_h input g nan_indices {nan_indices}")
+    print(f"chunk_gated_delta_rule_fwd_h input u {u}")
+    nan_mask = torch.isnan(u)
+    nan_indices = torch.nonzero(nan_mask, as_tuple=False)
+    print(f"chunk_gated_delta_rule_fwd_h input u nan_indices {nan_indices}")
+    print(f"chunk_gated_delta_rule_fwd_h output final_state  {final_state},initial_state {initial_state}")
+
+    nan_mask = torch.isnan(q)
+    nan_indices = torch.nonzero(nan_mask, as_tuple=False)
+    print(f"chunk_gated_delta_rule_fwd_h input q nan_indices {nan_indices}")
+    print(f"chunk_gated_delta_rule_fwd_h input q  {q}")
+
+    nan_mask = torch.isnan(k)
+    nan_indices = torch.nonzero(nan_mask, as_tuple=False)
+    print(f"chunk_gated_delta_rule_fwd_h input k nan_indices {nan_indices}")
+    print(f"chunk_gated_delta_rule_fwd_h input k {k}")
     o = chunk_fwd_o(
         q=q,
         k=k,
@@ -64,6 +90,10 @@ def chunk_gated_delta_rule_fwd(
         scale=scale,
         cu_seqlens=cu_seqlens,
     )
+    nan_mask = torch.isnan(o)
+    nan_indices = torch.nonzero(nan_mask, as_tuple=False)
+    print(f"chunk_fwd_o output nan_indices {nan_indices}")
+    print(f"chunk_fwd_o output {o}")
     return g, o, A, final_state
 
 

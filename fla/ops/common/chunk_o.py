@@ -65,12 +65,13 @@ def chunk_fwd_kernel_o(
         bos, eos = i_b * T, i_b * T + T
 
     # offset calculation
-    q += (bos * H + i_h) * K
-    k += (bos * H + i_h) * K
-    v += (bos * H + i_h) * V
-    o += (bos * H + i_h) * V
+    q += (bos * H + i_h).to(tl.int64) * K
+    k += (bos * H + i_h).to(tl.int64) * K
+    v += (bos * H + i_h).to(tl.int64) * V
+    o += (bos * H + i_h).to(tl.int64) * V
     h += (i_tg * H + i_h).to(tl.int64) * K*V
 
+    #b_o = tl.full([BT, BV], 1.0, dtype=tl.float32)
     b_o = tl.zeros([BT, BV], dtype=tl.float32)
     b_A = tl.zeros([BT, BT], dtype=tl.float32)
 
@@ -79,11 +80,11 @@ def chunk_fwd_kernel_o(
         p_k = tl.make_block_ptr(k, (K, T), (1, H*K), (i_k * BK, i_t * BT), (BK, BT), (0, 1))
         p_h = tl.make_block_ptr(h, (K, V), (V, 1), (i_k * BK, i_v * BV), (BK, BV), (1, 0))
         # [BT, BK]
-        b_q = tl.load(p_q, boundary_check=(0, 1))
+        b_q = tl.load(p_q, boundary_check=(0, 1),padding_option="zero")
         # [BK, BT]
-        b_k = tl.load(p_k, boundary_check=(0, 1))
+        b_k = tl.load(p_k, boundary_check=(0, 1),padding_option="zero")
         # [BK, BV]
-        b_h = tl.load(p_h, boundary_check=(0, 1))
+        b_h = tl.load(p_h, boundary_check=(0, 1),padding_option="zero")
 
         # [BT, BK] @ [BK, BV] -> [BT, BV]
         b_o += tl.dot(b_q, b_h)
@@ -494,7 +495,7 @@ def chunk_fwd_o(
     g_gamma: torch.Tensor | None = None,
     scale: float | None = None,
     cu_seqlens: torch.LongTensor | None = None,
-    chunk_size: int = 64,
+    chunk_size: int = 16,
 ) -> torch.Tensor:
     B, T, H, K, V = *q.shape, v.shape[-1]
     BT = chunk_size
@@ -503,8 +504,10 @@ def chunk_fwd_o(
     if scale is None:
         scale = k.shape[-1] ** -0.5
 
-    o = torch.empty_like(v)
+    o = torch.zeros_like(v)
     def grid(meta): return (triton.cdiv(V, meta['BV']), NT, B * H)
+    print(f"chunk_fwd_kernel_o scale {scale} T {T} H {H} K {K} V {V} BT {BT}")
+    #breakpoint()
     chunk_fwd_kernel_o[grid](
         q=q,
         k=k,
@@ -586,7 +589,7 @@ def chunk_bwd_dv_local(
     A: torch.Tensor | None = None,
     scale: float = None,
     cu_seqlens: torch.LongTensor | None = None,
-    chunk_size: int = 64,
+    chunk_size: int = 16,
 ) -> torch.Tensor:
     B, T, H, K, V = *k.shape, do.shape[-1]
     BT = chunk_size
@@ -639,7 +642,7 @@ def chunk_bwd_dqkwg(
     dv: torch.Tensor | None = None,
     scale: float | None = None,
     cu_seqlens: torch.LongTensor | None = None,
-    chunk_size: int = 64,
+    chunk_size: int = 16,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
     B, T, H, K, V = *k.shape, v.shape[-1]
