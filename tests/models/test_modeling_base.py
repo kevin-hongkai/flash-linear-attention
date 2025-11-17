@@ -59,7 +59,7 @@ def run_test_model_forward_backward(
         input_ids.view(1, B * T), output_hidden_states=True, cu_seqlens=cu_seqlens,
     ).hidden_states[-1]
     assert output_var.shape == (1, B * T, config.hidden_size)
-    #assert_close("output", output_fixed.view(1, B * T, -1), output_var, 1e-3)
+    assert_close("output", output_fixed.view(1, B * T, -1), output_var, 1e-3)
     output_var.backward(torch.randn_like(output_var))
 
 
