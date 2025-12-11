@@ -88,26 +88,26 @@ def causal_conv1d_fwd_kernel(
     b_y = tl.zeros((BT, BD), dtype=tl.float32)
     if not USE_INITIAL_STATE:
         for i_w in tl.static_range(-W + 1, 1):
-            # p_yi = tl.make_block_ptr(x + bos * D, (T, D), (D, 1), (i_t * BT + i_w, i_d * BD), (BT, BD), (1, 0))
-            # b_yi = tl.load(p_yi, boundary_check=(0, 1),padding_option="zero").to(tl.float32)
+            #p_yi = tl.make_block_ptr(x + bos * D, (T, D), (D, 1), (i_t * BT + i_w, i_d * BD), (BT, BD), (1, 0))
+            #b_yi = tl.load(p_yi, boundary_check=(0, 1),padding_option="zero").to(tl.float32)
             yi_offset_0 = i_t * BT + i_w + tl.arange(0, BT)[:, None]
             yi_offset_1 = i_d * BD + tl.arange(0, BD)[None, :]
-            mask = (yi_offset_0 < T) & (yi_offset_0 >= 0) & (yi_offset_1 < D) & (yi_offset_1 >= 0)
+            mask = (yi_offset_0 < T)  & (yi_offset_1 < D) 
             # [BT, BD]
-            b_yi = tl.load(x + bos * D + yi_offset_0 * D + yi_offset_1, mask=mask).to(tl.float32)
+            b_yi = tl.load(x + bos * D + yi_offset_0 * D + yi_offset_1, mask=mask,other=0.0).to(tl.float32)
             if HAS_WEIGHT:
                 b_yi *= tl.sum(b_w * (o_w == (i_w + W - 1)), 1)
             b_y += b_yi
     elif i_t * BT >= W:
         # to make Triton compiler happy, we need to copy codes
         for i_w in tl.static_range(-W + 1, 1):
-            # p_yi = tl.make_block_ptr(x + bos * D, (T, D), (D, 1), (i_t * BT + i_w, i_d * BD), (BT, BD), (1, 0))
-            # b_yi = tl.load(p_yi, boundary_check=(0, 1),padding_option="zero").to(tl.float32)
+            #p_yi = tl.make_block_ptr(x + bos * D, (T, D), (D, 1), (i_t * BT + i_w, i_d * BD), (BT, BD), (1, 0))
+            #b_yi = tl.load(p_yi, boundary_check=(0, 1),padding_option="zero").to(tl.float32)
             yi_offset_0 = i_t * BT + i_w + tl.arange(0, BT)[:, None]
             yi_offset_1 = i_d * BD + tl.arange(0, BD)[None, :]
-            mask = (yi_offset_0 < T) & (yi_offset_0 >= 0) & (yi_offset_1 < D) & (yi_offset_1 >= 0)
+            mask = (yi_offset_0 < T) & (yi_offset_1 < D)
             # [BT, BD]
-            b_yi = tl.load(x + bos * D + yi_offset_0 * D + yi_offset_1, mask=mask).to(tl.float32)
+            b_yi = tl.load(x + bos * D + yi_offset_0 * D + yi_offset_1, mask=mask,other=0.0).to(tl.float32)
             if HAS_WEIGHT:
                 b_yi *= tl.sum(b_w * (o_w == (i_w + W - 1)), 1)
             b_y += b_yi
